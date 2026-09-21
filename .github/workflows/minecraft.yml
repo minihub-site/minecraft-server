@@ -43,10 +43,10 @@ jobs:
 
       - name: Get Ngrok IP Address
         run: |
-          sleep 5
+          sleep 10
           echo "=========================================="
           echo "YOUR MINECRAFT SERVER IP ADDRESS IS BELOW:"
-          curl -s http://localhost:4040/api/tunnels | grep -o 'tcp://[^"]*'
+          curl -s http://localhost:4040/api/tunnels | grep -o 'tcp://[^"]*' || echo "Ngrok Tunnel Starting..."
           echo "=========================================="
 
       - name: Start Minecraft Server
