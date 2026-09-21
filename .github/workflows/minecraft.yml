@@ -16,14 +16,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Prepare Server Directory & Download PaperMC
+      - name: Prepare Server Directory & Download Minecraft
         run: |
           mkdir -p server
           cd server
           
-          # PaperMC 1.20.4 Download
-          curl -sSL -o server.jar "https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/496/downloads/paper-1.20.4-496.jar" || \
-          wget -O server.jar "https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/496/downloads/paper-1.20.4-496.jar"
+          # Download Mojang Vanilla 1.20.4 Server directly (100% Reliable)
+          curl -sSL -o server.jar "https://piston-data.mojang.com/v1/objects/8e1a057425e7949fda8d440ed97317e304a567d3/server.jar"
           
           echo "eula=true" > eula.txt
 
@@ -37,16 +36,18 @@ jobs:
         env:
           PLAYIT_SECRET: ${{ secrets.PLAYIT_SECRET }}
         run: |
-          # Download Playit Direct Binary
+          # Download direct binary for playit
           curl -SsL -o playit https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-amd64
           chmod +x playit
           sudo mv playit /usr/local/bin/
 
-          # Check Secret and Run
+          # Verify secret
           if [ -z "$PLAYIT_SECRET" ]; then
-            echo "PLAYIT_SECRET is missing! Please set it in GitHub Repository Secrets."
+            echo "PLAYIT_SECRET is missing! Please set it in GitHub Secrets."
             exit 1
           fi
+
+          # Start playit in background
           playit secret "$PLAYIT_SECRET" &
           sleep 5
 
