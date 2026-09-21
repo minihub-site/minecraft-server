@@ -1,0 +1,59 @@
+name: Minecraft Server with Auto-Save
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Prepare Server Directory & Restore Backup
+        run: |
+          mkdir -p server
+          cd server
+          curl -o server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/496/downloads/paper-1.20.4-496.jar
+          echo "eula=true" > eula.txt
+
+          # කලින් Save වූ World data තියෙනවා නම් Restore කිරීම
+          if [ -d "../world_backup" ]; then
+            echo "Restoring existing world data..."
+            cp -r ../world_backup/* .
+          fi
+
+      - name: Install and Run Playit.gg
+        env:
+          PLAYIT_SECRET: ${{ secrets.PLAYIT_SECRET }}
+        run: |
+          curl -SsL https://playit-cloud.github.io/ppa/key.gpg | sudo apt-key add -
+          sudo curl -SsL -o /etc/apt/sources.list.d/playit-cloud.list https://playit-cloud.github.io/ppa/playit-cloud.list
+          sudo apt-get update
+          sudo apt-get install playit -y
+          playit secret "$PLAYIT_SECRET" &
+
+      - name: Start Minecraft Server
+        run: |
+          cd server
+          java -Xmx6G -Xms6G -jar server.jar nogui
+
+      - name: Auto-Save World Data to GitHub
+        if: always() # Server එක Stop වුණත් මේ Step එක ක්‍රියාත්මක වේ
+        run: |
+          mkdir -p world_backup
+          cp -r server/world world_backup/ 2>/dev/null || true
+          cp -r server/world_nether world_backup/ 2>/dev/null || true
+          cp -r server/world_the_end world_backup/ 2>/dev/null || true
+
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add world_backup/
+          git commit -m "Auto-save world data [skip ci]" || echo "No changes to commit"
+          git push
